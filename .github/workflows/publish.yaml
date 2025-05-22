@@ -28,22 +28,22 @@ jobs:
         with:
           push: true
           tags: |
-            ghcr.io/Golem-Base/spoditor:${{ steps.tag.outputs.tag }}
+            ghcr.io/golem-base/spoditor:${{ steps.tag.outputs.tag }}
 
   create-release:
     name: Create release and generate bundle yaml
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
           go-version: 1.15
       - name: Get tag
         id: tag
         uses: dawidd6/action-get-tag@v1
       - name: Generate bundle YAML
-        run: IMG="ghcr.io/Golem-Base/spoditor:${{ steps.tag.outputs.tag }}" make build-yaml
+        run: IMG="ghcr.io/golem-base/spoditor:${{ steps.tag.outputs.tag }}" make build-yaml
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
