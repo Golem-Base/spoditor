@@ -32,7 +32,7 @@ jobs:
 
   create-release:
     name: Create release and generate bundle yaml
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
