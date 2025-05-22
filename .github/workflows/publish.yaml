@@ -3,7 +3,7 @@ name: Publish docker image to Github packages
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 jobs:
   push-to-packages:
@@ -28,7 +28,7 @@ jobs:
         with:
           push: true
           tags: |
-            ghcr.io/spoditor/spoditor:${{ steps.tag.outputs.tag }}
+            ghcr.io/Golem-Base/spoditor:${{ steps.tag.outputs.tag }}
 
   create-release:
     name: Create release and generate bundle yaml
@@ -43,7 +43,7 @@ jobs:
         id: tag
         uses: dawidd6/action-get-tag@v1
       - name: Generate bundle YAML
-        run: IMG="ghcr.io/spoditor/spoditor:${{ steps.tag.outputs.tag }}" make build-yaml
+        run: IMG="ghcr.io/Golem-Base/spoditor:${{ steps.tag.outputs.tag }}" make build-yaml
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
