@@ -2,9 +2,13 @@
 perSystem.devshell.mkShell {
   packages =
     (with pkgs; [
-      just
       go
-      templ
+      gotools
+      just
+      kubernetes-controller-tools
+      kustomize
+      operator-sdk
+      revive
     ])
     ++ (with perSystem.self; [ formatter ]);
 
