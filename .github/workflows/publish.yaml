@@ -66,7 +66,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.15
+          go-version: 1.23
       - name: Get tag from push event
         id: tag-from-push
         uses: dawidd6/action-get-tag@v1
