@@ -16,6 +16,9 @@ let
 
       just.enable = true;
 
+      gofumpt.enable = true;
+      goimports.enable = true;
+
       shellcheck.enable = true;
       shfmt.enable = true;
 
@@ -50,6 +53,12 @@ let
         "bin/*"
       ];
       shfmt.priority = 2;
+
+      gofumpt.pipeline = "go";
+      gofumpt.priority = 1;
+
+      goimports.pipeline = "go";
+      goimports.priority = 2;
 
       yamlfmt.excludes = [ "tpl/**" ];
     };
