@@ -12,7 +12,7 @@ func TestPortModifierHandler_Mutate(t *testing.T) {
 	type args struct {
 		spec    *corev1.PodSpec
 		ordinal int
-		cfg     interface{}
+		cfg     any
 	}
 	tests := []struct {
 		name    string
@@ -109,7 +109,7 @@ func TestPortModifierHandler_Mutate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := &PortModifierHandler{}
+			h := &HostPortHandler{}
 			if err := h.Mutate(tt.args.spec, tt.args.ordinal, tt.args.cfg); (err != nil) != tt.wantErr {
 				t.Errorf("Mutate() error = %v, wantErr %v", err, tt.wantErr)
 			} else if !reflect.DeepEqual(tt.args.spec, tt.want) {
@@ -142,7 +142,7 @@ func Test_parserFunc_Parse(t *testing.T) {
 			name: "valid config",
 			p:    parser,
 			args: args{annotations: map[annotation.QualifiedName]string{
-				annotation.QualifiedName{
+				{
 					Name: ModifyHostPorts,
 				}: `{"containers":[{"name":"web","ports":[{"name":"http","containerPort":8080,"hostPort":30000}]}]}`,
 			}},
@@ -169,7 +169,7 @@ func Test_parserFunc_Parse(t *testing.T) {
 			name: "invalid json",
 			p:    parser,
 			args: args{annotations: map[annotation.QualifiedName]string{
-				annotation.QualifiedName{
+				{
 					Name: ModifyHostPorts,
 				}: `{"containers":[{"name":`,
 			}},
