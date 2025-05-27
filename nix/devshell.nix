@@ -5,10 +5,16 @@ perSystem.devshell.mkShell {
       go
       gotools
       just
+      k9s
+      kubebuilder
+      kubectl
+      kubectx
       kubernetes-controller-tools
       kustomize
+      minikube
       operator-sdk
       revive
+      setup-envtest
     ])
     ++ (with perSystem.self; [ formatter ]);
 
@@ -23,5 +29,24 @@ perSystem.devshell.mkShell {
     }
   ];
 
-  commands = [ ];
+  commands = [
+    {
+      name = "k";
+      category = "ops";
+      help = "Shorter alias for kubectl";
+      command = ''${pkgs.kubectl}/bin/kubectl "$@"'';
+    }
+    {
+      name = "kns";
+      category = "ops";
+      help = "Switch kubernetes namespaces";
+      command = ''kubens "$@"'';
+    }
+    {
+      name = "kvs";
+      category = "Ops";
+      help = "kubectl view-secret alias";
+      command = ''${pkgs.kubectl-view-secret}/bin/kubectl-view-secret "$@"'';
+    }
+  ];
 }
