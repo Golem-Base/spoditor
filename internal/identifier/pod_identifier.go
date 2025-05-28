@@ -14,7 +14,6 @@ var log = logf.Log.WithName("pod_identifier")
 
 var statefulsetPodNameRegex = regexp.MustCompile(`^(.+)-(\d+)$`)
 
-// Common error types for pod identification
 var (
 	ErrMissingLabel      = errors.New("missing StatefulSet pod name label")
 	ErrInvalidLabelValue = errors.New("invalid StatefulSet pod name format")
@@ -43,22 +42,22 @@ var _ SSPodIdentifier = SSPodIdentifierFunc(nil)
 // It looks for the "statefulset.kubernetes.io/pod-name" label which contains the StatefulSet
 // name and pod ordinal in the format "<statefulset-name>-<ordinal>"
 var LabelSSPodIdentifier SSPodIdentifierFunc = func(accessor v1.ObjectMetaAccessor) (string, int, error) {
-	logger := log.WithValues("accessor", accessor.GetObjectMeta().GetName())
+	l := log.WithValues("accessor", accessor.GetObjectMeta().GetName())
 
 	// Get the pod name from the standard Kubernetes label
 	podName, hasLabel := accessor.GetObjectMeta().GetLabels()["statefulset.kubernetes.io/pod-name"]
 	if !hasLabel {
-		logger.Info("StatefulSet label not found")
+		l.Info("StatefulSet label not found")
 		return "", -1, ErrMissingLabel
 	}
 
-	logger = logger.WithValues("podName", podName)
-	logger.V(1).Info("Found StatefulSet pod name label")
+	l = l.WithValues("podName", podName)
+	l.V(1).Info("Found StatefulSet pod name label")
 
 	// Use regex to extract StatefulSet name and ordinal
 	matches := statefulsetPodNameRegex.FindStringSubmatch(podName)
 	if matches == nil {
-		logger.Info("Pod name does not match expected StatefulSet format",
+		l.Info("Pod name does not match expected StatefulSet format",
 			"pattern", statefulsetPodNameRegex.String())
 		return "", -1, ErrInvalidLabelValue
 	}
@@ -70,11 +69,11 @@ var LabelSSPodIdentifier SSPodIdentifierFunc = func(accessor v1.ObjectMetaAccess
 	// Parse the ordinal as an integer
 	ordinal, err := strconv.Atoi(ordinalStr)
 	if err != nil {
-		logger.Error(err, "Failed to parse ordinal as integer", "ordinalStr", ordinalStr)
+		l.Error(err, "Failed to parse ordinal as integer", "ordinalStr", ordinalStr)
 		return "", -1, fmt.Errorf("%w: %v", ErrParsingOrdinal, err)
 	}
 
-	logger.Info("Successfully extracted StatefulSet information",
+	l.Info("Successfully extracted StatefulSet information",
 		"statefulSet", ssName, "ordinal", ordinal)
 
 	return ssName, ordinal, nil

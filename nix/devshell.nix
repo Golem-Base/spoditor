@@ -2,16 +2,17 @@
 perSystem.devshell.mkShell {
   packages =
     (with pkgs; [
+      gnumake
       go
+      golangci-lint
       gotools
       just
       k9s
+      kind
       kubebuilder
       kubectl
       kubectx
       kubernetes-controller-tools
-      kustomize
-      minikube
       operator-sdk
       revive
       setup-envtest

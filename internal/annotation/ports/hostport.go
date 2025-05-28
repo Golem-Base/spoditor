@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/spoditor/spoditor/internal/annotation"
+	"github.com/golem-base/spoditor/internal/annotation"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
-	// ModifyHostPorts is the annotation key for port modification configuration
-	ModifyHostPorts = "host-port"
+	// HostPort is the annotation key for port modification configuration
+	HostPort = "host-port"
 	// PodOrdinal is the environment variable name for pod ordinal
 	PodOrdinal = "POD_ORDINAL"
 	// PortPrefix is the prefix for port environment variables
@@ -164,7 +164,7 @@ func (h *HostPortHandler) GetParser() annotation.Parser {
 // parser parses port modification annotations into a portConfig
 var parser annotation.ParserFunc = func(annotations map[annotation.QualifiedName]string) (any, error) {
 	for k, v := range annotations {
-		if k.Name != ModifyHostPorts {
+		if k.Name != HostPort {
 			continue
 		}
 

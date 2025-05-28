@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/spoditor/spoditor/internal/annotation"
+	"github.com/golem-base/spoditor/internal/annotation"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 )
@@ -14,7 +14,7 @@ func TestMountHandler_Mutate(t *testing.T) {
 	type args struct {
 		spec    *v1.PodSpec
 		ordinal int
-		cfg     interface{}
+		cfg     any
 	}
 	tests := []struct {
 		name    string
@@ -224,7 +224,7 @@ func Test_parserFunc_Parse(t *testing.T) {
 		name    string
 		p       annotation.ParserFunc
 		args    args
-		want    interface{}
+		want    any
 		wantErr bool
 	}{
 		{

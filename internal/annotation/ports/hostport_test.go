@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/spoditor/spoditor/internal/annotation"
+	"github.com/golem-base/spoditor/internal/annotation"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -128,7 +128,7 @@ func Test_parserFunc_Parse(t *testing.T) {
 		name    string
 		p       annotation.ParserFunc
 		args    args
-		want    interface{}
+		want    any
 		wantErr bool
 	}{
 		{
@@ -143,7 +143,7 @@ func Test_parserFunc_Parse(t *testing.T) {
 			p:    parser,
 			args: args{annotations: map[annotation.QualifiedName]string{
 				{
-					Name: ModifyHostPorts,
+					Name: HostPort,
 				}: `{"containers":[{"name":"web","ports":[{"name":"http","containerPort":8080,"hostPort":30000}]}]}`,
 			}},
 			want: &portConfig{
@@ -170,7 +170,7 @@ func Test_parserFunc_Parse(t *testing.T) {
 			p:    parser,
 			args: args{annotations: map[annotation.QualifiedName]string{
 				{
-					Name: ModifyHostPorts,
+					Name: HostPort,
 				}: `{"containers":[{"name":`,
 			}},
 			want:    nil,

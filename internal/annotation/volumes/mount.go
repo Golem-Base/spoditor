@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/spoditor/spoditor/internal/annotation"
+	"github.com/golem-base/spoditor/internal/annotation"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -14,9 +14,6 @@ const (
 	// MountVolume is the annotation key for volume mounting configuration
 	MountVolume = "mount-volume"
 )
-
-// Compile-time interface check
-var _ annotation.Handler = (*MountHandler)(nil)
 
 var log = logf.Log.WithName("mount_volume")
 
@@ -32,12 +29,15 @@ type mountConfigValue struct {
 	Containers []corev1.Container `json:"containers"` // Container configurations for volume mounts
 }
 
+// Ensure MountHandler implements Handler interface
+var _ annotation.Handler = (*MountHandler)(nil)
+
 // MountHandler handles volume mount operations based on annotations
 type MountHandler struct{}
 
 // Mutate modifies the pod spec to add volumes and volume mounts as specified
 func (h *MountHandler) Mutate(spec *corev1.PodSpec, ordinal int, cfg any) error {
-	logger := log.WithValues("ordinal", ordinal)
+	l := log.WithValues("ordinal", ordinal)
 
 	// Type assertion for our config
 	m, ok := cfg.(*mountConfig)
@@ -47,11 +47,11 @@ func (h *MountHandler) Mutate(spec *corev1.PodSpec, ordinal int, cfg any) error 
 
 	// Check if this pod matches the qualifier
 	if !annotation.CommonPodQualifier(ordinal, m.qualifier) {
-		logger.Info("qualifier excludes this pod")
+		l.Info("qualifier excludes this pod")
 		return nil
 	}
 
-	logger.Info("applying volume mounts to pod")
+	l.Info("applying volume mounts to pod")
 
 	// Process volumes, adding ordinal suffix to ConfigMap and Secret references
 	volumes := make([]corev1.Volume, len(m.cfg.Volumes))
@@ -67,7 +67,7 @@ func (h *MountHandler) Mutate(spec *corev1.PodSpec, ordinal int, cfg any) error 
 			originalName := v.ConfigMap.LocalObjectReference.Name
 			newName := originalName + ordinalSuffix
 
-			logger.Info("renaming configmap reference",
+			l.Info("renaming configmap reference",
 				"volume", v.Name,
 				"from", originalName,
 				"to", newName)
@@ -81,7 +81,7 @@ func (h *MountHandler) Mutate(spec *corev1.PodSpec, ordinal int, cfg any) error 
 			originalName := v.Secret.SecretName
 			newName := originalName + ordinalSuffix
 
-			logger.Info("renaming secret reference",
+			l.Info("renaming secret reference",
 				"volume", v.Name,
 				"from", originalName,
 				"to", newName)
@@ -98,7 +98,7 @@ func (h *MountHandler) Mutate(spec *corev1.PodSpec, ordinal int, cfg any) error 
 	for _, source := range m.cfg.Containers {
 		for i := range spec.Containers {
 			if source.Name == spec.Containers[i].Name {
-				logger.Info("adding volume mounts to container",
+				l.Info("adding volume mounts to container",
 					"container", source.Name,
 					"mounts", len(source.VolumeMounts))
 
@@ -116,9 +116,6 @@ func (h *MountHandler) Mutate(spec *corev1.PodSpec, ordinal int, cfg any) error 
 func (h *MountHandler) GetParser() annotation.Parser {
 	return volumeMountParser
 }
-
-// Ensure MountHandler implements the annotation.Handler interface
-var _ annotation.Handler = &MountHandler{}
 
 // volumeMountParser parses volume mount annotations into a mountConfig
 var volumeMountParser annotation.ParserFunc = func(annotations map[annotation.QualifiedName]string) (any, error) {
