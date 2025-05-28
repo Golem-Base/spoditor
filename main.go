@@ -20,10 +20,11 @@ import (
 	"flag"
 	"os"
 
-	"github.com/spoditor/spoditor/internal"
 	"github.com/spoditor/spoditor/internal/annotation"
 	"github.com/spoditor/spoditor/internal/annotation/ports"
 	"github.com/spoditor/spoditor/internal/annotation/volumes"
+	"github.com/spoditor/spoditor/internal/identifier"
+	"github.com/spoditor/spoditor/internal/webhook"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -81,8 +82,8 @@ func main() {
 
 	// +kubebuilder:scaffold:builder
 
-	podArgumentor := internal.PodArgumentor{
-		SSPodId:   internal.LabelSSPodIdentifier,
+	podArgumentor := webhook.PodArgumentor{
+		SSPodId:   identifier.LabelSSPodIdentifier,
 		Collector: annotation.Collector,
 	}
 	podArgumentor.Register(&volumes.MountHandler{})

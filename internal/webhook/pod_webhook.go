@@ -1,10 +1,11 @@
-package internal
+package webhook
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/spoditor/spoditor/internal/annotation"
+	"github.com/spoditor/spoditor/internal/identifier"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -21,7 +22,7 @@ var log = logf.Log.WithName("pod_webhook")
 // It processes annotations and applies modifications to pods during creation/update
 type PodArgumentor struct {
 	decoder   *admission.Decoder
-	SSPodId   SSPodIdentifier
+	SSPodId   identifier.SSPodIdentifier
 	handlers  []annotation.Handler
 	Collector annotation.QualifiedAnnotationCollector
 }
