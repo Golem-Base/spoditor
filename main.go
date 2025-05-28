@@ -86,7 +86,7 @@ func main() {
 		Collector: annotation.Collector,
 	}
 	podArgumentor.Register(&volumes.MountHandler{})
-	podArgumentor.Register(&ports.PortModifierHandler{})
+	podArgumentor.Register(&ports.HostPortHandler{})
 	podArgumentor.SetupWebhookWithManager(mgr)
 
 	if err := mgr.AddHealthzCheck("health", healthz.Ping); err != nil {

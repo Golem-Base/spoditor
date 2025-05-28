@@ -103,7 +103,7 @@ var _ = BeforeSuite(func() {
 		Collector: annotation.Collector,
 	}
 	podArgumentor.Register(&volumes.MountHandler{})
-	podArgumentor.Register(&ports.PortModifierHandler{})
+	podArgumentor.Register(&ports.HostPortHandler{})
 	podArgumentor.SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
