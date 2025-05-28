@@ -20,5 +20,4 @@ jobs:
           go-version: 1.22
 
       - name: Test
-        shell: bash
         run: make test
