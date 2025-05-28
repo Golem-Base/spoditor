@@ -4,93 +4,147 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/spoditor/spoditor/internal/annotation"
+	"github.com/golem-base/spoditor/internal/annotation"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
+	// MountVolume is the annotation key for volume mounting configuration
 	MountVolume = "mount-volume"
 )
 
 var log = logf.Log.WithName("mount_volume")
 
+// mountConfig holds the volume mounting configuration with its pod qualifier
 type mountConfig struct {
-	qualifier string
-	cfg       *mountConfigValue
+	qualifier string            // Which pods this applies to
+	cfg       *mountConfigValue // The actual volume configuration
 }
 
+// mountConfigValue represents the JSON structure of the volume mount configuration
 type mountConfigValue struct {
-	Volumes    []corev1.Volume    `json:"volumes"`
-	Containers []corev1.Container `json:"containers"`
+	Volumes    []corev1.Volume    `json:"volumes"`    // Volumes to be added to the pod
+	Containers []corev1.Container `json:"containers"` // Container configurations for volume mounts
 }
 
-type MountHandler struct {
-}
+// Ensure MountHandler implements Handler interface
+var _ annotation.Handler = (*MountHandler)(nil)
 
-func (h *MountHandler) Mutate(spec *corev1.PodSpec, ordinal int, cfg interface{}) error {
-	ll := log.WithValues("ordinal", ordinal)
+// MountHandler handles volume mount operations based on annotations
+type MountHandler struct{}
+
+// Mutate modifies the pod spec to add volumes and volume mounts as specified
+func (h *MountHandler) Mutate(spec *corev1.PodSpec, ordinal int, cfg any) error {
+	l := log.WithValues("ordinal", ordinal)
+
+	// Type assertion for our config
 	m, ok := cfg.(*mountConfig)
 	if !ok {
-		return fmt.Errorf("unexpected config type %T", m)
+		return fmt.Errorf("unexpected config type %T, expected *mountConfig", cfg)
 	}
-	if should(ordinal, m.qualifier) {
-		ll.Info("pod should be applicable")
-		for _, v := range m.cfg.Volumes {
-			if v.ConfigMap != nil {
-				ll.Info("overwrite configmap name",
-					"volume", v.Name,
-					"origin", v.ConfigMap.LocalObjectReference.Name,
-					"new", v.ConfigMap.LocalObjectReference.Name+"-"+strconv.Itoa(ordinal))
-				v.ConfigMap.LocalObjectReference.Name += "-" + strconv.Itoa(ordinal)
-			}
-			if v.Secret != nil {
-				ll.Info("overwrite secret name",
-					"volume", v.Name,
-					"origin", v.Secret.SecretName,
-					"new", v.Secret.SecretName+"-"+strconv.Itoa(ordinal))
-				v.Secret.SecretName += "-" + strconv.Itoa(ordinal)
+
+	// Check if this pod matches the qualifier
+	if !annotation.CommonPodQualifier(ordinal, m.qualifier) {
+		l.Info("qualifier excludes this pod")
+		return nil
+	}
+
+	l.Info("applying volume mounts to pod")
+
+	// Process volumes, adding ordinal suffix to ConfigMap and Secret references
+	volumes := make([]corev1.Volume, len(m.cfg.Volumes))
+	for i, v := range m.cfg.Volumes {
+		// Create a deep copy to avoid modifying the original
+		volumes[i] = v
+
+		// Suffix for ConfigMap and Secret names
+		ordinalSuffix := "-" + strconv.Itoa(ordinal)
+
+		// Handle ConfigMap references
+		if v.ConfigMap != nil {
+			originalName := v.ConfigMap.LocalObjectReference.Name
+			newName := originalName + ordinalSuffix
+
+			l.Info("renaming configmap reference",
+				"volume", v.Name,
+				"from", originalName,
+				"to", newName)
+
+			volumes[i].ConfigMap = v.ConfigMap.DeepCopy()
+			volumes[i].ConfigMap.LocalObjectReference.Name = newName
+		}
+
+		// Handle Secret references
+		if v.Secret != nil {
+			originalName := v.Secret.SecretName
+			newName := originalName + ordinalSuffix
+
+			l.Info("renaming secret reference",
+				"volume", v.Name,
+				"from", originalName,
+				"to", newName)
+
+			volumes[i].Secret = v.Secret.DeepCopy()
+			volumes[i].Secret.SecretName = newName
+		}
+	}
+
+	// Add processed volumes to the pod spec
+	spec.Volumes = append(spec.Volumes, volumes...)
+
+	// Add volume mounts to matching containers
+	for _, source := range m.cfg.Containers {
+		for i := range spec.Containers {
+			if source.Name == spec.Containers[i].Name {
+				l.Info("adding volume mounts to container",
+					"container", source.Name,
+					"mounts", len(source.VolumeMounts))
+
+				spec.Containers[i].VolumeMounts = append(
+					spec.Containers[i].VolumeMounts,
+					source.VolumeMounts...)
 			}
 		}
-		spec.Volumes = append(spec.Volumes, m.cfg.Volumes...)
-		for _, source := range m.cfg.Containers {
-			for i := 0; i < len(spec.Containers); i++ {
-				if source.Name == spec.Containers[i].Name {
-					ll.Info("mount volumes to container", "container", source.Name)
-					spec.Containers[i].VolumeMounts = append(spec.Containers[i].VolumeMounts, source.VolumeMounts...)
-				}
-			}
-		}
-	} else {
-		log.Info("qualifier excludes this pod")
 	}
+
 	return nil
 }
 
+// GetParser returns the parser for volume mount annotations
 func (h *MountHandler) GetParser() annotation.Parser {
-	return parser
+	return volumeMountParser
 }
 
-var _ annotation.Handler = &MountHandler{}
-
-var parser annotation.ParserFunc = func(annotations map[annotation.QualifiedName]string) (interface{}, error) {
+// volumeMountParser parses volume mount annotations into a mountConfig
+var volumeMountParser annotation.ParserFunc = func(annotations map[annotation.QualifiedName]string) (any, error) {
 	for k, v := range annotations {
-		ll := log.WithValues("qualifiedName", k, "value", v)
-		if k.Name == MountVolume {
-			ll.Info("parse config for mounting volumes")
-			c := &mountConfigValue{}
-			if err := json.Unmarshal([]byte(v), c); err == nil {
-				return &mountConfig{
-					qualifier: k.Qualifier,
-					cfg:       c,
-				}, nil
-			} else {
-				return nil, err
-			}
+		if k.Name != MountVolume {
+			continue
 		}
+
+		logger := log.WithValues("qualifiedName", k, "value", v)
+		logger.Info("parsing volume mount configuration")
+
+		// Attempt to unmarshal the JSON configuration
+		config := &mountConfigValue{}
+		if err := json.Unmarshal([]byte(v), config); err != nil {
+			logger.Error(err, "failed to parse volume mount configuration")
+			return nil, fmt.Errorf("invalid volume mount configuration: %w", err)
+		}
+
+		// Validate the configuration
+		if len(config.Volumes) == 0 {
+			logger.Info("configuration has no volumes, skipping")
+			return nil, nil
+		}
+
+		return &mountConfig{
+			qualifier: k.Qualifier,
+			cfg:       config,
+		}, nil
 	}
+
 	return nil, nil
 }
-
-var should = annotation.CommonPodQualifier

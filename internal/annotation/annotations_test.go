@@ -27,10 +27,10 @@ func TestCollectorFunc_Collect(t *testing.T) {
 				},
 			}},
 			want: map[QualifiedName]string{
-				QualifiedName{
+				{
 					Name: "mount-volume",
 				}: "dummy value",
-				QualifiedName{
+				{
 					Qualifier: "1-2",
 					Name:      "mount-volume",
 				}: "dummy value",

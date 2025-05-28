@@ -23,32 +23,29 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Get tag from push event
-        id: tag-from-push
-        uses: dawidd6/action-get-tag@v1
-        if: github.event_name == 'push'
-      - name: Set tag from workflow dispatch
-        id: tag-from-dispatch
-        if: github.event_name == 'workflow_dispatch'
-        run: echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-      - name: Set final tag
+
+      - name: Set tag
         id: tag
         run: |
           if [ "${{ github.event_name }}" == "push" ]; then
-            echo "tag=${{ steps.tag-from-push.outputs.tag }}" >> $GITHUB_OUTPUT
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           else
-            echo "tag=${{ steps.tag-from-dispatch.outputs.tag }}" >> $GITHUB_OUTPUT
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
           fi
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -63,28 +60,24 @@ jobs:
     needs: push-to-packages
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.15
-      - name: Get tag from push event
-        id: tag-from-push
-        uses: dawidd6/action-get-tag@v1
-        if: github.event_name == 'push'
-      - name: Set tag from workflow dispatch
-        id: tag-from-dispatch
-        if: github.event_name == 'workflow_dispatch'
-        run: echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-      - name: Set final tag
+          go-version: 1.22
+
+      - name: Set tag
         id: tag
         run: |
           if [ "${{ github.event_name }}" == "push" ]; then
-            echo "tag=${{ steps.tag-from-push.outputs.tag }}" >> $GITHUB_OUTPUT
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           else
-            echo "tag=${{ steps.tag-from-dispatch.outputs.tag }}" >> $GITHUB_OUTPUT
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
           fi
+
       - name: Generate bundle YAML
         run: IMG="ghcr.io/golem-base/spoditor:${{ steps.tag.outputs.tag }}" make build-yaml
+
       - name: Create GitHub Release
         if: github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2.2.2
@@ -94,6 +87,7 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Add to Existing Release
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2.2.2

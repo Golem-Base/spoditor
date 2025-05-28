@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/spoditor/spoditor/internal/annotation"
+	"github.com/golem-base/spoditor/internal/annotation"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -12,7 +12,7 @@ func TestPortModifierHandler_Mutate(t *testing.T) {
 	type args struct {
 		spec    *corev1.PodSpec
 		ordinal int
-		cfg     interface{}
+		cfg     any
 	}
 	tests := []struct {
 		name    string
@@ -109,7 +109,7 @@ func TestPortModifierHandler_Mutate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := &PortModifierHandler{}
+			h := &HostPortHandler{}
 			if err := h.Mutate(tt.args.spec, tt.args.ordinal, tt.args.cfg); (err != nil) != tt.wantErr {
 				t.Errorf("Mutate() error = %v, wantErr %v", err, tt.wantErr)
 			} else if !reflect.DeepEqual(tt.args.spec, tt.want) {
@@ -128,7 +128,7 @@ func Test_parserFunc_Parse(t *testing.T) {
 		name    string
 		p       annotation.ParserFunc
 		args    args
-		want    interface{}
+		want    any
 		wantErr bool
 	}{
 		{
@@ -142,8 +142,8 @@ func Test_parserFunc_Parse(t *testing.T) {
 			name: "valid config",
 			p:    parser,
 			args: args{annotations: map[annotation.QualifiedName]string{
-				annotation.QualifiedName{
-					Name: ModifyHostPorts,
+				{
+					Name: HostPort,
 				}: `{"containers":[{"name":"web","ports":[{"name":"http","containerPort":8080,"hostPort":30000}]}]}`,
 			}},
 			want: &portConfig{
@@ -169,8 +169,8 @@ func Test_parserFunc_Parse(t *testing.T) {
 			name: "invalid json",
 			p:    parser,
 			args: args{annotations: map[annotation.QualifiedName]string{
-				annotation.QualifiedName{
-					Name: ModifyHostPorts,
+				{
+					Name: HostPort,
 				}: `{"containers":[{"name":`,
 			}},
 			want:    nil,
